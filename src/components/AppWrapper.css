@@ -1,0 +1,595 @@
+.app-wrapper {
+  min-height: 100vh;
+  background: #111827;
+  color: #F8FAFC;
+}
+
+.initializing-screen,
+.auth-screen {
+  min-height: 100vh;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.initializing-content {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #374151;
+  border-top: 2px solid #3B82F6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem auto;
+}
+
+.initializing-text {
+  color: #9CA3AF;
+  font-size: 1rem;
+}
+
+.auth-container {
+  max-width: 28rem;
+  width: 100%;
+  background: #111827;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border: 1px solid #374151;
+  transition: all 0.3s ease;
+}
+
+.signup-container {
+  max-width: 44rem;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #F8FAFC 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-subtitle {
+  color: #9CA3AF;
+  font-size: 1rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #9CA3AF;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input-container {
+  position: relative;
+  width: 100%;
+}
+
+/* FIXED ICON POSITIONING - NO OVERLAP */
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6B7280;
+  pointer-events: none;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* FIXED INPUT PADDING - PROPER SPACING FOR ICONS */
+.form-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3.5rem; /* Increased left padding */
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  color: #F8FAFC;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-input::placeholder {
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.password-input {
+  padding-right: 3.5rem; /* Increased right padding for password toggle */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.password-toggle:hover {
+  color: #9CA3AF;
+}
+
+.field-error {
+  color: #EF4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.password-requirements {
+  margin-top: 0.25rem;
+}
+
+.password-requirements small {
+  color: #6B7280;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  min-width: 1rem;
+}
+
+.form-checkbox:checked {
+  background: #3B82F6;
+  border-color: #3B82F6;
+}
+
+.form-checkbox.error {
+  border-color: #EF4444;
+}
+
+.checkbox-label {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.terms-link {
+  color: #3B82F6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.terms-link:hover {
+  color: #60A5FA;
+  text-decoration: underline;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #F87171;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.submit-button {
+  width: 100%;
+  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  color: #F8FAFC;
+  font-weight: 500;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.button-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.auth-links {
+  margin-top: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  color: #3B82F6;
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  padding: 0.25rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.auth-link:hover {
+  color: #60A5FA;
+}
+
+.secondary-link {
+  color: #6B7280;
+}
+
+.secondary-link:hover {
+  color: #9CA3AF;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* RESPONSIVE DESIGN - FIXED ICON SPACING */
+@media (max-width: 768px) {
+  .auth-screen {
+    padding: 0.5rem;
+  }
+
+  .auth-container {
+    padding: 1.5rem;
+    max-width: 100%;
+  }
+
+  .signup-container {
+    max-width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .auth-title {
+    font-size: 1.5rem;
+  }
+
+  .form-input {
+    padding: 0.75rem 1rem 0.75rem 3.25rem; /* Adjusted for mobile */
+    font-size: 0.875rem;
+  }
+
+  .input-icon {
+    left: 0.875rem;
+    width: 18px;
+    height: 18px;
+  }
+
+  .password-toggle {
+    right: 0.875rem;
+  }
+
+  .password-input {
+    padding-right: 3.25rem;
+  }
+
+  .checkbox-container {
+    gap: 0.5rem;
+  }
+
+  .checkbox-label {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-container {
+    padding: 1rem;
+  }
+
+  .signup-container {
+    padding: 1rem;
+  }
+
+  .form-input {
+    padding: 0.75rem 1rem 0.75rem 3rem; /* Adjusted for small screens */
+    min-height: 40px;
+  }
+
+  .input-icon {
+    left: 0.75rem;
+    width: 16px;
+    height: 16px;
+  }
+
+  .password-toggle {
+    right: 0.75rem;
+  }
+
+  .password-input {
+    padding-right: 3rem;
+  }
+
+  .checkbox-container {
+    gap: 0.5rem;
+  }
+
+  .checkbox-label {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .auth-title {
+    font-size: 1.25rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-screen {
+    padding: 0.25rem;
+  }
+
+  .auth-container {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .signup-container {
+    padding: 0.75rem;
+  }
+
+  .form-input {
+    padding: 0.625rem 0.875rem 0.625rem 2.75rem; /* Adjusted for very small screens */
+    font-size: 0.8125rem;
+  }
+
+  .input-icon {
+    left: 0.625rem;
+    width: 16px;
+    height: 16px;
+  }
+
+  .password-toggle {
+    right: 0.625rem;
+    width: 20px;
+    height: 20px;
+  }
+
+  .password-input {
+    padding-right: 2.75rem;
+  }
+
+  .form-label {
+    font-size: 0.8125rem;
+  }
+
+  .checkbox-container {
+    gap: 0.5rem;
+  }
+
+  .checkbox-label {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .form-checkbox {
+    width: 0.875rem;
+    height: 0.875rem;
+    min-width: 0.875rem;
+  }
+}
+
+/* Focus and accessibility improvements */
+.form-input:focus-visible,
+.submit-button:focus-visible,
+.auth-link:focus-visible,
+.password-toggle:focus-visible,
+.form-checkbox:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .auth-container {
+    border-color: #6B7280;
+  }
+
+  .form-input {
+    border-color: #6B7280;
+  }
+
+  .form-input:focus {
+    border-color: #F8FAFC;
+  }
+
+  .form-checkbox {
+    border-color: #6B7280;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner,
+  .button-spinner {
+    animation: none;
+  }
+
+  .submit-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .auth-container {
+    transition: none;
+  }
+
+  * {
+    transition: none !important;
+  }
+}
+
+/* Text overflow prevention for all elements */
+.form-input,
+.form-label,
+.checkbox-label,
+.field-error,
+.password-requirements small,
+.terms-link,
+.auth-link,
+.error-message {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure proper spacing and prevent content overflow */
+.auth-form > *,
+.form-group > *,
+.checkbox-container > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Additional container constraints */
+.auth-container * {
+  box-sizing: border-box;
+}
+
+/* Specific fix for checkbox section */
+.form-group:has(.checkbox-container) {
+  width: 100%;
+  overflow: hidden;
+}
+
+.checkbox-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
