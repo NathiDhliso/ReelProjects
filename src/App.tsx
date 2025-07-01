@@ -8,29 +8,40 @@ import ProjectDetailView from './components/ProjectDetailView'
 import { getSupabaseClient } from './lib/auth'
 import { LogOut } from 'lucide-react'
 import './App.css'
+import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy } from 'lucide-react'
+import { Project, ReelPassScore } from './types'
+import { calculateReelPassScore } from './lib/reelpass-scoring'
+import ReelPassWidget from './components/ReelPassWidget'
+import ReelPassDashboard from './components/ReelPassDashboard'
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  goals?: string;
-  target_skills: string[];
-  analysis: any;
-  plan: string[];
-  skill_demonstrations: any[];
-  status: string;
-  created_at: string;
-  type: string;
-  user_id: string;
-}
-
-function ProjectListView({ projects, onAddProject, isLoading }: { 
+function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onViewReelPass }: { 
   projects: Project[], 
   onAddProject: (project: Project) => void,
-  isLoading: boolean 
+  isLoading: boolean,
+  reelPassScore?: ReelPassScore,
+  onViewReelPass: () => void
 }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || project.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const getProjectTypeColor = (type: string) => {
+    switch (type) {
+      case 'AI-Powered Multi-Skill Showcase': return 'bg-gradient-to-r from-purple-500 to-blue-500';
+      case 'Professional Project': return 'bg-gradient-to-r from-blue-500 to-cyan-500';
+      case 'Personal Project': return 'bg-gradient-to-r from-green-500 to-teal-500';
+      case 'Academic Project': return 'bg-gradient-to-r from-orange-500 to-yellow-500';
+      default: return 'bg-gradient-to-r from-gray-500 to-gray-600';
+    }
+  };
 
   const addProject = (project: Project) => {
     onAddProject(project);
@@ -57,168 +68,182 @@ function ProjectListView({ projects, onAddProject, isLoading }: {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-white">ReelProject</h1>
-            <div className="text-sm text-gray-400">
-              Part of the{' '}
+    <div className="projects-container">
+      <div className="projects-header">
+        <div className="header-content">
+          <h1 className="projects-title">
+            <Folder className="title-icon" />
+            ReelProjects Portfolio
+          </h1>
+          <p className="projects-subtitle">
+            Build AI-powered projects that showcase your skills with automatic verification
+          </p>
+        </div>
+        
+        {/* ReelPass Score Widget */}
+        <ReelPassWidget score={reelPassScore} onClick={onViewReelPass} />
+
+        <div className="header-actions">
+          <div className="search-container">
+            <Search className="search-icon" size={20} />
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
+          <select 
+            value={filterType} 
+            onChange={(e) => setFilterType(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Types</option>
+            <option value="AI-Powered Multi-Skill Showcase">AI Showcases</option>
+            <option value="Professional Project">Professional</option>
+            <option value="Personal Project">Personal</option>
+            <option value="Academic Project">Academic</option>
+          </select>
+          
+          <button 
+            className="btn-new-project"
+            onClick={() => onAddProject({} as Project)}
+          >
+            <Plus size={20} />
+            Create AI Project
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+        {!showCreateForm ? (
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <button 
+              onClick={() => setShowCreateForm(true)}
+              className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
+            >
+              + Create New AI-Powered Project
+            </button>
+          </div>
+        ) : (
+          <CreateProjectForm 
+            onProjectCreated={addProject} 
+            onClose={handleCloseForm}
+          />
+        )}
+        
+        {filteredProjects.length > 0 && (
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Your Projects</h2>
+            <div className="space-y-4">
+              {filteredProjects.map((project) => (
+                <div 
+                  key={project.id}
+                  className="p-4 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
+                  onClick={() => handleProjectClick(project)}
+                >
+                  <h3 className="font-semibold text-white">{project.name}</h3>
+                  <p className="text-gray-400 text-sm">{project.description}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <p className="text-gray-500 text-xs">
+                      Created: {new Date(project.created_at).toLocaleDateString()}
+                    </p>
+                    {project.analysis && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-blue-400">
+                          AI Score: {project.analysis.clarity_score}/10
+                        </span>
+                        <span className="text-green-400">
+                          {project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filteredProjects.length === 0 && !showCreateForm && (
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
+            <p className="text-gray-400 mb-4">
+              No projects yet. Create your first project to start building your professional portfolio.
+            </p>
+            <p className="text-sm text-gray-500">
+              Your verified skills will automatically sync with{' '}
+              <a 
+                href="https://reelcv.reelapps.co.za" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                ReelCV
+              </a>
+              {' '}for a complete professional profile
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer with ReelApps ecosystem links */}
+      <footer className="mt-12 pt-8 border-t border-gray-700">
+        <div className="text-center">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Explore the ReelApps Ecosystem</h3>
+            <div className="flex flex-wrap justify-center gap-6 text-sm">
+              <a 
+                href="https://reelcv.reelapps.co.za" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                ReelCV - Professional Profiles
+              </a>
+              <a 
+                href="https://reelpersona.reelapps.co.za" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                ReelPersona - Work Personality Assessment
+              </a>
+              <a 
+                href="https://reelhunter.reelapps.co.za" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                ReelHunter - Talent Acquisition
+              </a>
+              <a 
+                href="https://reelskills.reelapps.co.za" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                ReelSkills - Skill Development
+              </a>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500">
+            <p>
+              Powered by{' '}
               <a 
                 href="https://www.reelapps.co.za" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 transition-colors"
               >
-                ReelApps ecosystem
+                ReelApps.co.za
               </a>
-            </div>
-          </div>
-          <p className="text-gray-400 mb-4">
-            AI-powered project management with skill verification and professional portfolio building
-          </p>
-          <div className="text-sm text-gray-500">
-            Build your professional portfolio with{' '}
-            <a 
-              href="https://reelcv.reelapps.co.za" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              ReelCV
-            </a>
-            {' '}and showcase your skills with ReelProject
+              {' '}- The complete professional development platform
+            </p>
           </div>
         </div>
-
-        <div className="grid gap-6">
-          {!showCreateForm ? (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <button 
-                onClick={() => setShowCreateForm(true)}
-                className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
-              >
-                + Create New AI-Powered Project
-              </button>
-            </div>
-          ) : (
-            <CreateProjectForm 
-              onProjectCreated={addProject} 
-              onClose={handleCloseForm}
-            />
-          )}
-          
-          {projects.length > 0 && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Your Projects</h2>
-              <div className="space-y-4">
-                {projects.map((project) => (
-                  <div 
-                    key={project.id}
-                    className="p-4 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
-                    onClick={() => handleProjectClick(project)}
-                  >
-                    <h3 className="font-semibold text-white">{project.name}</h3>
-                    <p className="text-gray-400 text-sm">{project.description}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <p className="text-gray-500 text-xs">
-                        Created: {new Date(project.created_at).toLocaleDateString()}
-                      </p>
-                      {project.analysis && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-blue-400">
-                            AI Score: {project.analysis.clarity_score}/10
-                          </span>
-                          <span className="text-green-400">
-                            {project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {projects.length === 0 && !showCreateForm && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
-              <p className="text-gray-400 mb-4">
-                No projects yet. Create your first project to start building your professional portfolio.
-              </p>
-              <p className="text-sm text-gray-500">
-                Your verified skills will automatically sync with{' '}
-                <a 
-                  href="https://reelcv.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelCV
-                </a>
-                {' '}for a complete professional profile
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer with ReelApps ecosystem links */}
-        <footer className="mt-12 pt-8 border-t border-gray-700">
-          <div className="text-center">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-white mb-2">Explore the ReelApps Ecosystem</h3>
-              <div className="flex flex-wrap justify-center gap-6 text-sm">
-                <a 
-                  href="https://reelcv.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelCV - Professional Profiles
-                </a>
-                <a 
-                  href="https://reelpersona.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelPersona - Work Personality Assessment
-                </a>
-                <a 
-                  href="https://reelhunter.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelHunter - Talent Acquisition
-                </a>
-                <a 
-                  href="https://reelskills.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelSkills - Skill Development
-                </a>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500">
-              <p>
-                Powered by{' '}
-                <a 
-                  href="https://www.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelApps.co.za
-                </a>
-                {' '}- The complete professional development platform
-              </p>
-            </div>
-          </div>
-        </footer>
-      </div>
+      </footer>
     </div>
   );
 }
@@ -240,6 +265,9 @@ function App() {
   const [initError, setInitError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [reelPassScore, setReelPassScore] = useState<ReelPassScore | undefined>();
+  const [showReelPassDashboard, setShowReelPassDashboard] = useState(false);
 
   // Load projects from Supabase when user is authenticated
   useEffect(() => {
@@ -293,6 +321,10 @@ function App() {
       })) || [];
 
       setProjects(transformedProjects);
+      
+      // Calculate ReelPass score
+      const score = calculateReelPassScore(transformedProjects);
+      setReelPassScore(score);
     } catch (err) {
       console.error('Failed to load projects:', err);
     } finally {
@@ -301,52 +333,54 @@ function App() {
   };
 
   const addProject = async (project: Project) => {
-    if (!user) return;
+    if (!user) {
+      alert('Please sign in to create projects');
+      return;
+    }
 
     try {
       const supabase = getSupabaseClient();
       
-      // Get user's profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) {
-        throw new Error('User profile not found');
-      }
-
-      // Insert project into database
+      // Save to database
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          profile_id: profile.id,
+          profile_id: user.id,
           title: project.name,
           description: project.description,
           role: project.goals || '',
-          technologies: project.target_skills,
-          start_date: new Date().toISOString().split('T')[0],
+          technologies: project.target_skills || [],
+          demo_url: '',
+          github_url: '',
+          type: project.type || 'personal',
           featured: false
         })
         .select()
         .single();
 
       if (error) {
-        throw error;
+        console.error('Error saving project:', error);
+        return;
       }
 
-      // Add to local state
+      // Create the new project with database ID
       const newProject = {
         ...project,
         id: data.id,
         user_id: user.id
       };
       
-      setProjects(prevProjects => [newProject, ...prevProjects]);
+      setProjects(prevProjects => {
+        const updatedProjects = [newProject, ...prevProjects];
+        
+        // Recalculate ReelPass score
+        const score = calculateReelPassScore(updatedProjects);
+        setReelPassScore(score);
+        
+        return updatedProjects;
+      });
     } catch (err) {
       console.error('Failed to save project:', err);
-      alert('Failed to save project. Please try again.');
     }
   };
 
@@ -390,6 +424,10 @@ function App() {
     init();
   }, [initialize]);
 
+  const handleViewReelPass = () => {
+    setShowReelPassDashboard(true);
+  };
+
   if (localInitializing || isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -413,6 +451,26 @@ function App() {
             Please ensure your Supabase environment variables are properly configured.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (showReelPassDashboard && reelPassScore) {
+    return (
+      <div className="app">
+        <button 
+          className="back-button"
+          onClick={() => setShowReelPassDashboard(false)}
+        >
+          ← Back to Projects
+        </button>
+        <ReelPassDashboard 
+          score={reelPassScore} 
+          onViewDetails={(component) => {
+            console.log('View details for:', component);
+            // Handle navigation to specific component details
+          }}
+        />
       </div>
     );
   }
@@ -448,6 +506,8 @@ function App() {
             projects={projects} 
             onAddProject={addProject}
             isLoading={projectsLoading}
+            reelPassScore={reelPassScore}
+            onViewReelPass={handleViewReelPass}
           />
         } />
         <Route path="/project/:id" element={<ProjectDetailView projects={projects} />} />

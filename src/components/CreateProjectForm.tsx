@@ -27,7 +27,8 @@ import {
   ChevronUp,
   Minimize2,
   Maximize2,
-  Search
+  Search,
+  Rocket
 } from 'lucide-react';
 import { Project } from '../types';
 
@@ -65,6 +66,9 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectGoals, setProjectGoals] = useState('');
+  const [projectType, setProjectType] = useState('Professional Project');
+  const [projectScale, setProjectScale] = useState<'small' | 'medium' | 'large' | 'enterprise'>('small');
+  const [projectImpact, setProjectImpact] = useState<'low' | 'medium' | 'high' | 'significant'>('low');
   const [targetSkills, setTargetSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [analysis, setAnalysis] = useState<ScopeAnalysis | null>(null);
@@ -77,6 +81,9 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
   const [aiSuggestedSkills, setAiSuggestedSkills] = useState<{[category: string]: string[]}>({});
   const [collapsedSkills, setCollapsedSkills] = useState<{[key: string]: boolean}>({});
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'technical' | 'soft' | 'language' | 'certification'>('all');
+  const [skillSearchTerm, setSkillSearchTerm] = useState('');
 
   const demonstrationIcons = {
     code: Code,
@@ -600,21 +607,12 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectName || !projectDescription || targetSkills.length === 0) {
-      setError('Please fill in all required fields');
+    if (!validateCurrentStep()) {
       return;
     }
-
-    if (!analysis) {
-      setError('Please wait for analysis to complete before creating the project');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
 
     try {
-      // Generate a project plan based on the analysis
+      // Generate project plan
       const generateProjectPlan = (skills: ProjectSkill[], description: string): string[] => {
         const plan = [
           `Project Setup: Initialize the ${projectName} project with proper structure and dependencies`,
@@ -629,99 +627,163 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
         return plan;
       };
 
-      const newProject = {
-        id: `project_${Date.now()}`,
+      const projectId = crypto.randomUUID();
+      const project: Project = {
+        id: projectId,
         name: projectName,
         description: projectDescription,
         goals: projectGoals,
+        type: projectType,
+        scale: projectScale,
+        impact: projectImpact,
         target_skills: targetSkills,
-        analysis: analysis,
-        plan: generateProjectPlan(analysis.detected_skills, projectDescription),
-        skill_demonstrations: analysis.detected_skills.map(skill => ({
+        analysis: analysis || {},
+        plan: analysis ? generateProjectPlan(analysis.detected_skills, projectDescription) : [],
+        skill_demonstrations: analysis?.detected_skills.map(skill => ({
           ...skill,
           status: 'planned',
           evidence_url: null,
           verified: false,
           rating: null,
           verification_feedback: null
-        })),
+        })) || [],
         status: 'active',
-        created_at: new Date().toISOString(),
-        type: 'AI-Powered Multi-Skill Showcase',
-        user_id: 'current_user' // This will be set properly in the parent component
+        created_at: new Date().toISOString()
       };
 
-      console.log('AI-powered project created:', newProject);
-      onProjectCreated(newProject);
-
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unexpected error occurred';
-      setError(message);
-      console.error('Project creation failed:', err);
-    } finally {
-      setIsLoading(false);
+      onProjectCreated(project);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project. Please try again.');
     }
   };
 
-  const renderProjectSetup = () => (
+  const validateCurrentStep = (): boolean => {
+    switch (currentStep) {
+      case 1:
+        return projectName.trim() !== '' && projectDescription.trim() !== '' && projectGoals.trim() !== '';
+      case 2:
+        return targetSkills.length > 0;
+      case 3:
+        return analysis !== null;
+      default:
+        return false;
+    }
+  };
+
+  const renderStep1 = () => (
     <div className="form-step">
       <div className="step-header">
-        <Brain className="step-icon" size={24} />
+        <Rocket className="step-icon" size={24} />
         <div>
-          <h2>AI-Powered Project Setup</h2>
-          <p>Define your project and let AI analyze the optimal skill demonstration approach</p>
+          <h2>Project Overview</h2>
+          <p>Tell us about your project and what you want to achieve</p>
         </div>
       </div>
 
-      {!isSupabaseConfigured() && (
-        <div className="config-warning">
-          <AlertCircle size={20} />
-          <div>
-            <strong>Configuration Notice</strong>
-            <p>AI analysis service is not configured. Using intelligent analysis based on industry standards and best practices.</p>
-          </div>
-        </div>
-      )}
-
       <div className="form-group">
-        <label htmlFor="projectName">Project Name *</label>
+        <label htmlFor="projectName">
+          Project Name *
+          <span className="field-hint">Choose a memorable name for your project</span>
+        </label>
         <input
-          id="projectName"
           type="text"
+          id="projectName"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          placeholder="e.g., E-commerce Platform, Portfolio Website, Data Analytics Dashboard"
-          required
-          disabled={isLoading}
+          placeholder="e.g., E-commerce Platform Redesign"
+          maxLength={100}
         />
+        {formErrors.projectName && <p className="error-message">{formErrors.projectName}</p>}
       </div>
 
       <div className="form-group">
-        <label htmlFor="projectDescription">Project Description *</label>
+        <label htmlFor="projectType">
+          Project Type
+          <span className="field-hint">Select the category that best describes your project</span>
+        </label>
+        <select
+          id="projectType"
+          value={projectType}
+          onChange={(e) => setProjectType(e.target.value)}
+        >
+          <option value="Professional Project">Professional Project</option>
+          <option value="Personal Project">Personal Project</option>
+          <option value="Academic Project">Academic Project</option>
+          <option value="Open Source">Open Source</option>
+          <option value="Freelance Work">Freelance Work</option>
+          <option value="Hackathon">Hackathon</option>
+        </select>
+      </div>
+
+      {/* New Scale and Impact Fields */}
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="projectScale">
+            Project Scale
+            <span className="field-hint">Estimate the scale of your project</span>
+          </label>
+          <select
+            id="projectScale"
+            value={projectScale}
+            onChange={(e) => setProjectScale(e.target.value as any)}
+          >
+            <option value="small">Small (Individual/Small team)</option>
+            <option value="medium">Medium (Department/Multiple teams)</option>
+            <option value="large">Large (Organization-wide)</option>
+            <option value="enterprise">Enterprise (Multi-organization)</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="projectImpact">
+            Expected Impact
+            <span className="field-hint">Anticipated impact of the project</span>
+          </label>
+          <select
+            id="projectImpact"
+            value={projectImpact}
+            onChange={(e) => setProjectImpact(e.target.value as any)}
+          >
+            <option value="low">Low (Learning/Practice)</option>
+            <option value="medium">Medium (Team/Department benefit)</option>
+            <option value="high">High (Organization-wide benefit)</option>
+            <option value="significant">Significant (Industry/Market impact)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="projectDescription">
+          Project Description *
+          <span className="field-hint">Provide a detailed overview of what you're building and why</span>
+        </label>
         <textarea
           id="projectDescription"
           value={projectDescription}
           onChange={(e) => setProjectDescription(e.target.value)}
-          placeholder="Describe what you're building, its purpose, key features, and target users. Be specific about the problems it solves. AI will analyze this to suggest optimal skill demonstrations."
-          required
-          disabled={isLoading}
-          rows={4}
+          placeholder="Describe your project in detail. Include the problem you're solving, target audience, and key features..."
+          rows={6}
+          maxLength={2000}
         />
-        <div className="character-count">
-          {projectDescription.length}/500 characters
-        </div>
+        <div className="character-count">{projectDescription.length}/2000</div>
+        {formErrors.projectDescription && <p className="error-message">{formErrors.projectDescription}</p>}
       </div>
 
       <div className="form-group">
-        <label htmlFor="projectGoals">Success Criteria & Goals</label>
+        <label htmlFor="projectGoals">
+          Goals & Objectives
+          <span className="field-hint">What do you hope to achieve with this project?</span>
+        </label>
         <textarea
           id="projectGoals"
           value={projectGoals}
           onChange={(e) => setProjectGoals(e.target.value)}
-          placeholder="What specific outcomes do you want to achieve? How will you measure success? AI will use this to optimize skill verification strategies."
-          disabled={isLoading}
-          rows={3}
+          placeholder="List your main goals and success metrics..."
+          rows={4}
+          maxLength={1000}
         />
+        <div className="character-count">{projectGoals.length}/1000</div>
       </div>
 
       {projectDescription.length > 50 && (
@@ -843,7 +905,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
           <div className="skills-grid">
             {targetSkills.map((skill, index) => {
               const skillAnalysis = analysis?.detected_skills.find(s => s.name === skill);
-              const DemoIcon = skillAnalysis ? (demonstrationIcons as Record<string, React.ComponentType>)[skillAnalysis.demonstrationMethod] || Code : Code;
+              const DemoIcon = skillAnalysis ? (demonstrationIcons as Record<string, React.ComponentType<any>>)[skillAnalysis.demonstrationMethod] || Code : Code;
               const feedback = skillFeedback[skill];
               const isCollapsed = collapsedSkills[skill];
               
@@ -935,13 +997,15 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
             <h3>AI-Powered Skill Verification Plan</h3>
             <div className="verification-grid">
               {analysis.detected_skills.map((skill, index) => {
-                const DemoIcon = (demonstrationIcons as Record<string, React.ComponentType>)[skill.demonstrationMethod] || Code;
+                const DemoIcon = (demonstrationIcons as Record<string, React.ComponentType<any>>)[skill.demonstrationMethod] || Code;
                 const mapping = analysis.skill_mapping.find(m => m.skill === skill.name);
                 
                 return (
                   <div key={index} className="verification-card">
                     <div className="verification-header">
-                      <DemoIcon className="demo-icon" size={20} />
+                      <div className="demo-icon">
+                        <DemoIcon size={20} />
+                      </div>
                       <div>
                         <h4>{skill.name}</h4>
                         <span className={`category-badge ${skill.category}`}>
@@ -1024,7 +1088,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
   const isStepValid = (step: number): boolean => {
     switch (step) {
       case 1:
-        return projectName.trim() !== '' && projectDescription.trim() !== '';
+        return projectName.trim() !== '' && projectDescription.trim() !== '' && projectGoals.trim() !== '';
       case 2:
         return targetSkills.length > 0;
       case 3:
@@ -1070,7 +1134,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
         </div>
 
         <form onSubmit={handleSubmit}>
-          {currentStep === 1 && renderProjectSetup()}
+          {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderSkillSelection()}
           {currentStep === 3 && renderAnalysisReview()}
 

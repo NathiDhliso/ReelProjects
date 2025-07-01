@@ -1,0 +1,76 @@
+.reelpass-widget {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+}
+
+.reelpass-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: #4B5563;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+.widget-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.score-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.placeholder-text {
+  font-size: 1rem;
+  color: #6B7280;
+}
+
+.score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.score-value {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.score-max {
+  font-size: 0.875rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.level-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #9CA3AF;
+}
+
+.trend-icon {
+  color: #6B7280;
+} 
