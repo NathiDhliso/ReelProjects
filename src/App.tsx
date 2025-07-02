@@ -8,7 +8,7 @@ import ProjectDetailView from './components/ProjectDetailView'
 import { getSupabaseClient } from './lib/auth'
 import { LogOut } from 'lucide-react'
 import './App.css'
-import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy, List, GitBranch } from 'lucide-react'
+import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy, List, GitBranch, Calendar } from 'lucide-react'
 import { Project, ReelPassScore } from './types'
 import { calculateReelPassScore } from './lib/reelpass-scoring'
 import ReelPassWidget from './components/ReelPassWidget'
@@ -150,14 +150,15 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
           onProjectClick={handleProjectClick}
         />
       ) : (
-        <div className="grid gap-6">
+        <div className="projects-grid">
           {!showCreateForm ? (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="create-project-card">
               <button 
                 onClick={() => setShowCreateForm(true)}
-                className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
+                className="create-project-button"
               >
-                + Create New AI-Powered Project
+                <Plus size={24} />
+                <span>Create New AI-Powered Project</span>
               </button>
             </div>
           ) : (
@@ -168,31 +169,53 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
           )}
           
           {filteredProjects.length > 0 && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Your Projects</h2>
-              <div className="space-y-4">
+            <div className="projects-list-section">
+              <h2 className="section-title">Your Projects</h2>
+              <div className="projects-list">
                 {filteredProjects.map((project) => (
                   <div 
                     key={project.id}
-                    className="p-4 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
+                    className="project-list-card"
                     onClick={() => handleProjectClick(project)}
                   >
-                    <h3 className="font-semibold text-white">{project.name}</h3>
-                    <p className="text-gray-400 text-sm">{project.description}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <p className="text-gray-500 text-xs">
-                        Created: {new Date(project.created_at).toLocaleDateString()}
-                      </p>
-                      {project.analysis && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-blue-400">
-                            AI Score: {project.analysis.clarity_score}/10
-                          </span>
-                          <span className="text-green-400">
-                            {project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills
-                          </span>
+                    <div className="project-card-content">
+                      <div className="project-header">
+                        <h3 className="project-name">{project.name}</h3>
+                        <div className="project-type-tag">
+                          {project.type}
                         </div>
-                      )}
+                      </div>
+                      
+                      <p className="project-description">{project.description}</p>
+                      
+                      <div className="project-meta">
+                        <div className="meta-item">
+                          <Calendar size={14} />
+                          <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
+                        </div>
+                        
+                        {project.analysis && (
+                          <>
+                            <div className="meta-item">
+                              <Brain size={14} />
+                              <span>AI Score: {project.analysis.clarity_score}/10</span>
+                            </div>
+                            <div className="meta-item">
+                              <Award size={14} />
+                              <span>{project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="project-badges">
+                        {project.scale === 'enterprise' && (
+                          <span className="project-badge enterprise">Enterprise</span>
+                        )}
+                        {project.impact === 'significant' && (
+                          <span className="project-badge impact">High Impact</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -201,22 +224,24 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
           )}
 
           {filteredProjects.length === 0 && !showCreateForm && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
-              <p className="text-gray-400 mb-4">
-                No projects yet. Create your first project to start building your professional portfolio.
-              </p>
-              <p className="text-sm text-gray-500">
-                Your verified skills will automatically sync with{' '}
-                <a 
-                  href="https://reelcv.reelapps.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  ReelCV
-                </a>
-                {' '}for a complete professional profile
-              </p>
+            <div className="empty-state">
+              <div className="empty-state-content">
+                <Folder size={64} className="empty-icon" />
+                <h3>No projects yet</h3>
+                <p>Create your first project to start building your professional portfolio.</p>
+                <p className="ecosystem-note">
+                  Your verified skills will automatically sync with{' '}
+                  <a 
+                    href="https://reelcv.reelapps.co.za" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ecosystem-link"
+                  >
+                    ReelCV
+                  </a>
+                  {' '}for a complete professional profile
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -375,25 +400,15 @@ function App() {
     try {
       const supabase = getSupabaseClient();
       
-      // Prepare data for database - ensure all fields have correct types
+      // Prepare data for database - only include fields that exist in the schema
       const projectData = {
         profile_id: user.id,
         title: project.name || 'Untitled Project',
         description: project.description || '',
         role: project.goals || '',
         technologies: Array.isArray(project.target_skills) ? project.target_skills : [],
-        demo_url: '',
-        github_url: '',
         type: project.type || 'personal',
-        featured: false,
-        // Store scale and impact as JSON in metadata field if your DB has one
-        // Otherwise, you may need to add these columns to your projects table
-        metadata: {
-          scale: project.scale || 'small',
-          impact: project.impact || 'low',
-          analysis: project.analysis || {},
-          skill_demonstrations: project.skill_demonstrations || []
-        }
+        featured: false
       };
 
       // Save to database
