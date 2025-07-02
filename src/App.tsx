@@ -9,15 +9,16 @@ import { getSupabaseClient } from './lib/auth'
 import { LogOut } from 'lucide-react'
 import './App.css'
 import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy, List, GitBranch, Calendar } from 'lucide-react'
-import { Project, ReelPassScore } from './types'
+import { Project, ReelPassScore, dbProjectToProject, projectToDbInsert } from './types'
 import { calculateReelPassScore } from './lib/reelpass-scoring'
 import ReelPassWidget from './components/ReelPassWidget'
 import ReelPassDashboard from './components/ReelPassDashboard'
 import ProjectPipeline from './components/ProjectPipeline'
 
-function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onViewReelPass }: { 
+function ProjectListView({ projects, onAddProject, onProjectMove, isLoading, reelPassScore, onViewReelPass }: { 
   projects: Project[], 
   onAddProject: (project: Project) => void,
+  onProjectMove: (projectId: string, newStage: string) => void,
   isLoading: boolean,
   reelPassScore?: ReelPassScore,
   onViewReelPass: () => void
@@ -56,12 +57,6 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
 
   const handleProjectClick = (project: Project) => {
     navigate(`/project/${project.id}`, { state: { project } });
-  };
-
-  const handleProjectMove = (projectId: string, newStage: string) => {
-    // This would update the project status based on the pipeline stage
-    console.log(`Moving project ${projectId} to stage ${newStage}`);
-    // You could implement status updates here
   };
 
   if (isLoading) {
@@ -146,7 +141,7 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
       {viewMode === 'pipeline' ? (
         <ProjectPipeline 
           projects={filteredProjects}
-          onProjectMove={handleProjectMove}
+          onProjectMove={onProjectMove}
           onProjectClick={handleProjectClick}
         />
       ) : (
@@ -191,7 +186,7 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
                       <div className="project-meta">
                         <div className="meta-item">
                           <Calendar size={14} />
-                          <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
+                          <span>Created: {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Unknown'}</span>
                         </div>
                         
                         {project.analysis && (
@@ -331,24 +326,43 @@ function App() {
   // Load projects from Supabase when user is authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadUserProjects();
+      loadProjects();
     } else {
       setProjects([]);
     }
   }, [isAuthenticated, user]);
 
-  const loadUserProjects = async () => {
+  const loadProjects = async () => {
     if (!user) return;
     
     setProjectsLoading(true);
     try {
       const supabase = getSupabaseClient();
       
-      // Query projects from database
+      // First, get the user's profile ID
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        setProjectsLoading(false);
+        return;
+      }
+
+      if (!profileData) {
+        console.log('No profile found for user');
+        setProjectsLoading(false);
+        return;
+      }
+
+      // Load projects using the profile ID
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('profile_id', user.id)
+        .eq('profile_id', profileData.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -356,33 +370,24 @@ function App() {
         return;
       }
 
-      // Transform database projects to app format
-      const transformedProjects = data?.map(project => ({
-        id: project.id,
-        name: project.title,
-        description: project.description,
-        goals: project.role, // Using role field for goals
-        target_skills: project.technologies || [],
-        analysis: {
-          clarity_score: 8,
-          feasibility_score: 8,
-          identified_risks: [],
-          suggested_technologies: project.technologies || [],
-          detected_skills: [],
-          skill_mapping: []
-        },
+      // Convert database projects to app projects
+      const projects: Project[] = (data || []).map(dbProject => ({
+        ...dbProjectToProject(dbProject),
+        // Set default values for app-specific fields
+        analysis: {},
         plan: [],
         skill_demonstrations: [],
-        status: project.featured ? 'featured' : 'active',
-        created_at: project.created_at,
+        status: 'active',
         type: 'Professional Project',
-        user_id: user.id
-      })) || [];
-
-      setProjects(transformedProjects);
+        scale: 'medium' as const,
+        // Set default pipeline stage if not set
+        pipeline_stage: 'planning' as const
+      }));
+      
+      setProjects(projects);
       
       // Calculate ReelPass score
-      const score = calculateReelPassScore(transformedProjects);
+      const score = calculateReelPassScore(projects);
       setReelPassScore(score);
     } catch (err) {
       console.error('Failed to load projects:', err);
@@ -400,16 +405,26 @@ function App() {
     try {
       const supabase = getSupabaseClient();
       
-      // Prepare data for database - only include fields that exist in the schema
-      const projectData = {
-        profile_id: user.id,
-        title: project.name || 'Untitled Project',
-        description: project.description || '',
-        role: project.goals || '',
-        technologies: Array.isArray(project.target_skills) ? project.target_skills : [],
-        type: project.type || 'personal',
-        featured: false
-      };
+      // First, get the user's profile ID from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        alert('Could not find user profile. Please ensure your profile is set up.');
+        return;
+      }
+
+      if (!profileData) {
+        alert('No profile found. Please set up your profile first.');
+        return;
+      }
+
+      // Use the helper function to convert project to database format with the correct profile ID
+      const projectData = projectToDbInsert(project, profileData.id);
 
       // Save to database
       const { data, error } = await supabase
@@ -424,11 +439,18 @@ function App() {
         return;
       }
 
-      // Create the new project with database ID
+      // Convert database project back to app project format
       const newProject: Project = {
-        ...project,
-        id: data.id,
-        created_at: data.created_at || new Date().toISOString()
+        ...dbProjectToProject(data),
+        // Preserve app-specific fields that aren't stored in database
+        analysis: project.analysis,
+        plan: project.plan,
+        skill_demonstrations: project.skill_demonstrations,
+        status: project.status,
+        type: project.type,
+        scale: project.scale,
+        // Ensure pipeline_stage is set
+        pipeline_stage: project.pipeline_stage || 'planning'
       };
       
       setProjects(prevProjects => {
@@ -452,6 +474,33 @@ function App() {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const handleProjectMove = (projectId: string, newStage: string) => {
+    console.log(`Moving project ${projectId} to stage ${newStage}`);
+    
+    // Update the project's pipeline stage
+    setProjects(prevProjects => {
+      const updatedProjects = prevProjects.map(project => 
+        project.id === projectId 
+          ? { 
+              ...project, 
+              pipeline_stage: newStage as Project['pipeline_stage'],
+              // Update status based on stage
+              status: (newStage === 'completed' ? 'completed' : 'active') as Project['status']
+            }
+          : project
+      );
+      
+      // Save to localStorage for persistence (optional since we're using Supabase)
+      localStorage.setItem('reelProjects', JSON.stringify(updatedProjects));
+      
+      // Recalculate ReelPass score with updated projects
+      const updatedScore = calculateReelPassScore(updatedProjects);
+      setReelPassScore(updatedScore);
+      
+      return updatedProjects;
+    });
   };
 
   useEffect(() => {
@@ -567,6 +616,7 @@ function App() {
           <ProjectListView 
             projects={projects} 
             onAddProject={addProject}
+            onProjectMove={handleProjectMove}
             isLoading={projectsLoading}
             reelPassScore={reelPassScore}
             onViewReelPass={handleViewReelPass}

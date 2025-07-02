@@ -77,26 +77,8 @@ const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
   // Group projects by stage
   const projectsByStage = PIPELINE_STAGES.reduce((acc, stage) => {
     acc[stage.id] = projects.filter(project => {
-      // Map project status to pipeline stages
-      if (project.status === 'active') {
-        // Check if project has verified skills
-        const hasVerifiedSkills = project.skill_demonstrations?.some(s => s.verified);
-        if (hasVerifiedSkills) return stage.id === 'verification';
-        
-        // Check if project has any evidence
-        const hasEvidence = project.skill_demonstrations?.some(s => s.evidence_url);
-        if (hasEvidence) return stage.id === 'testing';
-        
-        // Check if project has skills defined
-        if (project.skill_demonstrations?.length > 0) return stage.id === 'development';
-        
-        return stage.id === 'planning';
-      }
-      
-      if (project.status === 'completed') return stage.id === 'completed';
-      
-      // Default to planning
-      return stage.id === 'planning';
+      // Use the project's pipeline_stage field directly
+      return project.pipeline_stage === stage.id;
     });
     return acc;
   }, {} as Record<string, Project[]>);
@@ -135,6 +117,7 @@ const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
   };
 
   const getProjectDaysInStage = (project: Project): number => {
+    if (!project.created_at) return 0;
     const createdDate = new Date(project.created_at);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - createdDate.getTime());

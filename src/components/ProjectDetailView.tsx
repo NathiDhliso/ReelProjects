@@ -19,6 +19,7 @@ import {
   Eye
 } from 'lucide-react';
 import { getSupabaseClient } from '../lib/auth';
+import { Project } from '../types';
 import './ProjectDetailView.css';
 
 interface ProjectSkill {
@@ -65,14 +66,14 @@ interface ProjectData {
 }
 
 interface ProjectDetailViewProps {
-  projects: ProjectData[];
+  projects: Project[];
 }
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
   const { id: projectId } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [project, setProject] = useState<ProjectData | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [projectVideo, setProjectVideo] = useState<File | null>(null);
@@ -81,7 +82,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
 
   useEffect(() => {
     // Try to get project from navigation state first
-    const stateProject = location.state?.project as ProjectData;
+    const stateProject = location.state?.project as Project;
     
     if (stateProject && stateProject.id === projectId) {
       setProject(stateProject);
@@ -91,7 +92,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
 
     // Otherwise try to find project from props
     if (projects && projectId) {
-      const foundProject = projects.find((p: ProjectData) => p.id === projectId);
+      const foundProject = projects.find((p: Project) => p.id === projectId);
       if (foundProject) {
         setProject(foundProject);
         setIsLoading(false);
@@ -118,7 +119,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
       <div className="project-detail-view">
         <div className="project-not-found">
           <div className="not-found-content">
-            <Target size={64} className="not-found-icon" />
+                          <Target className="not-found-icon" style={{ width: 64, height: 64 }} />
             <h2>Project Not Found</h2>
             <p>The AI-powered project you're looking for could not be found.</p>
             <button onClick={() => navigate('/')} className="btn btn-primary">
@@ -168,12 +169,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
   };
 
   const handleSkillProgress = (skillId: string, newStatus: string) => {
+    if (!project) return;
+    
     console.log(`Updating skill ${skillId} to status: ${newStatus}`);
     
     // Update project state with new skill status
     const updatedProject = {
       ...project,
-      skill_demonstrations: project.skill_demonstrations.map(s => 
+      skill_demonstrations: (project.skill_demonstrations || []).map(s => 
         s.id === skillId 
           ? { ...s, status: newStatus as ProjectSkill['status'] }
           : s
@@ -187,7 +190,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
     if (savedProjects) {
       try {
         const projects = JSON.parse(savedProjects);
-        const updatedProjects = projects.map((p: ProjectData) => 
+        const updatedProjects = projects.map((p: Project) => 
           p.id === project.id ? updatedProject : p
         );
         localStorage.setItem('reelProjects', JSON.stringify(updatedProjects));
@@ -258,10 +261,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
       console.log('Starting AI analysis of project showcase video...');
       
       const supabase = getSupabaseClient();
-      const skillAnalysis = [];
+      const skillAnalysis: Array<{
+        skillId: string;
+        rating: number;
+        feedback: string;
+        confidence: number;
+      }> = [];
       
       // Process each skill with the AI video verification
-      for (const skill of project.skill_demonstrations) {
+      const skillDemonstrations = project.skill_demonstrations || [];
+      for (const skill of skillDemonstrations) {
         try {
           console.log(`Analyzing skill: ${skill.name}`);
           
@@ -275,7 +284,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
               evidenceUrl: videoUrl,
               evidenceType: projectVideo?.type || 'video/mp4',
               skillRequirements: skill.requirements,
-              verificationCriteria: project.analysis.skill_mapping.find(m => m.skill === skill.name)?.verification_criteria || []
+              verificationCriteria: project.analysis?.skill_mapping?.find((m: any) => m.skill === skill.name)?.verification_criteria || []
             }
           });
           
@@ -307,7 +316,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
       // Update all skills with AI verification results
       const updatedProject = {
         ...project,
-        skill_demonstrations: project.skill_demonstrations.map(skill => {
+        skill_demonstrations: (project.skill_demonstrations || []).map(skill => {
           const skillResult = skillAnalysis.find(r => r.skillId === skill.id);
           return skillResult ? {
             ...skill,
@@ -331,7 +340,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
       if (savedProjects) {
         try {
           const projects = JSON.parse(savedProjects);
-          const updatedProjects = projects.map((p: ProjectData) => 
+          const updatedProjects = projects.map((p: Project) => 
             p.id === project.id ? updatedProject : p
           );
           localStorage.setItem('reelProjects', JSON.stringify(updatedProjects));
@@ -376,8 +385,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
           </div>
           <div className="skill-status">
             <StatusIcon 
-              size={20} 
-              style={{ color: getStatusColor(skill.status || 'planned') }}
+              style={{ color: getStatusColor(skill.status || 'planned'), width: 20, height: 20 }}
             />
             <span style={{ color: getStatusColor(skill.status || 'planned') }}>
               {(skill.status || 'planned').replace('-', ' ')}
@@ -490,11 +498,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
                 </p>
               </div>
               
-              {!project.skill_demonstrations.some(s => s.evidence_url && s.evidence_url !== null) ? (
+              {!(project.skill_demonstrations || []).some(s => s.evidence_url && s.evidence_url !== null) ? (
                 <div className="upload-prompt">
                   <div className="upload-instructions">
                     <h3>🤖 AI-Enhanced Multi-Skill Analysis</h3>
-                    <p>Upload a comprehensive video demonstrating all {project.skill_demonstrations.length} skills. Our advanced AI will automatically analyze and verify each skill demonstration.</p>
+                    <p>Upload a comprehensive video demonstrating all {(project.skill_demonstrations || []).length} skills. Our advanced AI will automatically analyze and verify each skill demonstration.</p>
                     <ul>
                       <li>Duration: 5-15 minutes total</li>
                       <li>Clearly announce each skill as you demonstrate it</li>
@@ -516,7 +524,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
                   <CheckCircle size={20} />
                   <div className="status-info">
                     <span>Video analyzed by AI</span>
-                    <small>{project.skill_demonstrations.filter(s => s.verified).length} skills AI-verified</small>
+                    <small>{(project.skill_demonstrations || []).filter(s => s.verified).length} skills AI-verified</small>
                   </div>
                   <button 
                     className="btn btn-secondary btn-sm"
@@ -588,7 +596,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
               <div className="analysis-section">
                 <h4>AI-Identified Risks</h4>
                 <ul className="risk-list">
-                  {project.analysis?.identified_risks?.map((risk, index) => (
+                  {project.analysis?.identified_risks?.map((risk: string, index: number) => (
                     <li key={index}>{risk}</li>
                   )) || <li>No AI risks identified</li>}
                 </ul>
@@ -597,7 +605,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
               <div className="analysis-section">
                 <h4>AI-Suggested Technologies</h4>
                 <div className="tech-tags">
-                  {project.analysis?.suggested_technologies?.map((tech, index) => (
+                  {project.analysis?.suggested_technologies?.map((tech: string, index: number) => (
                     <span key={index} className="tech-tag">{tech}</span>
                   )) || <span className="tech-tag">No AI suggestions</span>}
                 </div>
@@ -620,8 +628,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
                 </div>
                 <div className="stat">
                   <span className="stat-number">
-                    {project.skill_demonstrations?.filter(s => s.rating).length ? 
-                      (project.skill_demonstrations.filter(s => s.rating).reduce((acc, s) => acc + (s.rating || 0), 0) / project.skill_demonstrations.filter(s => s.rating).length).toFixed(1) : 
+                    {(project.skill_demonstrations || []).filter(s => s.rating).length ? 
+                      ((project.skill_demonstrations || []).filter(s => s.rating).reduce((acc, s) => acc + (s.rating || 0), 0) / (project.skill_demonstrations || []).filter(s => s.rating).length).toFixed(1) : 
                       '0.0'
                     }
                   </span>

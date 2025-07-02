@@ -1,17 +1,43 @@
+// Import the generated Supabase types
+import { Tables, TablesInsert, TablesUpdate } from './types/supabase';
+
+// Use the database types as the base
+export type DatabaseProject = Tables<'projects'>;
+export type DatabaseProjectInsert = TablesInsert<'projects'>;
+export type DatabaseProjectUpdate = TablesUpdate<'projects'>;
+
+// Extended Project interface that includes both database fields and additional app fields
 export interface Project {
+  // All database fields from DatabaseProject (except profile_id which we handle separately)
   id: string;
-  name: string;
+  created_at: string | null;
   description: string;
-  goals?: string;
-  target_skills: string[];
-  analysis: any;
-  plan: string[];
-  skill_demonstrations: any[];
-  status: string;
-  created_at: string;
+  end_date: string | null;
+  featured: boolean | null;
+  github_url: string | null;
+  impact: string | null;
+  live_url: string | null;
+  media_urls: string[] | null;
+  role: string;
+  start_date: string;
+  technologies: string[];
+  title: string;
+  updated_at: string | null;
+  
+  // Map database fields to more user-friendly names
+  name: string; // Maps to database 'title'
+  goals?: string; // Maps to database 'role'
+  target_skills: string[]; // Maps to database 'technologies'
+  
+  // Additional fields for the app (not stored in database)
+  pipeline_stage: 'planning' | 'development' | 'testing' | 'verification' | 'completed';
+  analysis?: any;
+  plan?: string[];
+  skill_demonstrations?: ProjectSkill[];
+  status: 'active' | 'completed' | 'paused';
   type: string;
   scale?: 'small' | 'medium' | 'large' | 'enterprise';
-  impact?: 'low' | 'medium' | 'high' | 'significant';
+  projectImpact?: 'low' | 'medium' | 'high' | 'significant'; // Renamed to avoid conflict with db 'impact'
   externalValidations?: Array<{
     type: 'client_testimonial' | 'user_metrics' | 'open_source' | 'award';
     description: string;
@@ -20,6 +46,58 @@ export interface Project {
   liveDemo?: {
     url: string;
     type: 'video_walkthrough' | 'public_presentation' | 'live_deployment';
+  };
+}
+
+// Helper function to convert database project to app project
+export const dbProjectToProject = (dbProject: DatabaseProject): Project => ({
+  // Database fields
+  id: dbProject.id,
+  created_at: dbProject.created_at,
+  description: dbProject.description,
+  end_date: dbProject.end_date,
+  featured: dbProject.featured,
+  github_url: dbProject.github_url,
+  impact: dbProject.impact,
+  live_url: dbProject.live_url,
+  media_urls: dbProject.media_urls,
+  role: dbProject.role,
+  start_date: dbProject.start_date,
+  technologies: dbProject.technologies,
+  title: dbProject.title,
+  updated_at: dbProject.updated_at,
+  
+  // Map database fields to app fields
+  name: dbProject.title,
+  goals: dbProject.role,
+  target_skills: dbProject.technologies || [],
+  projectImpact: (dbProject.impact as 'low' | 'medium' | 'high' | 'significant') || 'medium',
+  
+  // Default values for app-specific fields
+  pipeline_stage: 'planning', // Default to planning stage
+  status: 'active',
+  type: 'Professional Project', // Default type
+  analysis: {},
+  plan: [],
+  skill_demonstrations: [],
+  scale: 'medium'
+});
+
+// Helper function to convert app project to database insert
+export function projectToDbInsert(project: Partial<Project>, profileId: string): DatabaseProjectInsert {
+  return {
+    profile_id: profileId,
+    title: project.name || 'Untitled Project',
+    description: project.description || '',
+    role: project.goals || '',
+    technologies: project.target_skills || [],
+    impact: project.projectImpact || project.impact || null,
+    start_date: new Date().toISOString(),
+    featured: false,
+    github_url: null,
+    live_url: null,
+    media_urls: null,
+    end_date: null
   };
 }
 

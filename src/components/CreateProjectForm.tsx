@@ -30,7 +30,7 @@ import {
   Search,
   Rocket
 } from 'lucide-react';
-import { Project } from '../types';
+import { Project, projectToDbInsert } from '../types';
 
 interface ProjectSkill {
   id: string;
@@ -629,14 +629,29 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
 
       const projectId = crypto.randomUUID();
       const project: Project = {
+        // Database fields
         id: projectId,
-        name: projectName,
+        title: projectName, // Database field
         description: projectDescription,
+        role: projectGoals || '', // Database field  
+        technologies: targetSkills, // Database field
+        impact: projectImpact, // Database field
+        start_date: new Date().toISOString(),
+        end_date: null,
+        featured: false,
+        github_url: null,
+        live_url: null,
+        media_urls: null,
+        created_at: new Date().toISOString(),
+        updated_at: null,
+        
+        // App-specific fields (mapped from database)
+        name: projectName,
         goals: projectGoals,
+        target_skills: targetSkills,
+        projectImpact: projectImpact,
         type: projectType,
         scale: projectScale,
-        impact: projectImpact,
-        target_skills: targetSkills,
         analysis: analysis || {},
         plan: analysis ? generateProjectPlan(analysis.detected_skills, projectDescription) : [],
         skill_demonstrations: analysis?.detected_skills.map(skill => ({
@@ -647,8 +662,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onClose, onProjec
           rating: null,
           verification_feedback: null
         })) || [],
-        status: 'active',
-        created_at: new Date().toISOString()
+        status: 'active'
       };
 
       onProjectCreated(project);
