@@ -2,9 +2,20 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 let supabaseClient: SupabaseClient | null = null;
+let supabaseConfigured = false;
 
-export const initializeSupabase = (url: string, anonKey: string) => {
-  supabaseClient = createClient(url, anonKey);
+export const initializeSupabase = (supabaseUrl: string, supabaseAnonKey: string) => {
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storage: localStorage,
+      storageKey: 'supabase.auth.token',
+      flowType: 'pkce'
+    }
+  });
+  supabaseConfigured = true;
   return supabaseClient;
 };
 

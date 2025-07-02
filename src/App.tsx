@@ -8,11 +8,12 @@ import ProjectDetailView from './components/ProjectDetailView'
 import { getSupabaseClient } from './lib/auth'
 import { LogOut } from 'lucide-react'
 import './App.css'
-import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy } from 'lucide-react'
+import { Plus, Search, Folder, Target, Brain, Award, Lightbulb, Trophy, List, GitBranch } from 'lucide-react'
 import { Project, ReelPassScore } from './types'
 import { calculateReelPassScore } from './lib/reelpass-scoring'
 import ReelPassWidget from './components/ReelPassWidget'
 import ReelPassDashboard from './components/ReelPassDashboard'
+import ProjectPipeline from './components/ProjectPipeline'
 
 function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onViewReelPass }: { 
   projects: Project[], 
@@ -25,6 +26,7 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('list');
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,6 +56,12 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
 
   const handleProjectClick = (project: Project) => {
     navigate(`/project/${project.id}`, { state: { project } });
+  };
+
+  const handleProjectMove = (projectId: string, newStage: string) => {
+    // This would update the project status based on the pipeline stage
+    console.log(`Moving project ${projectId} to stage ${newStage}`);
+    // You could implement status updates here
   };
 
   if (isLoading) {
@@ -106,6 +114,24 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
             <option value="Personal Project">Personal</option>
             <option value="Academic Project">Academic</option>
           </select>
+
+          {/* View Mode Toggle */}
+          <div className="view-mode-toggle">
+            <button
+              className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List View"
+            >
+              <List size={20} />
+            </button>
+            <button
+              className={`view-mode-btn ${viewMode === 'pipeline' ? 'active' : ''}`}
+              onClick={() => setViewMode('pipeline')}
+              title="Pipeline View"
+            >
+              <GitBranch size={20} />
+            </button>
+          </div>
           
           <button 
             className="btn-new-project"
@@ -117,76 +143,84 @@ function ProjectListView({ projects, onAddProject, isLoading, reelPassScore, onV
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {!showCreateForm ? (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <button 
-              onClick={() => setShowCreateForm(true)}
-              className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
-            >
-              + Create New AI-Powered Project
-            </button>
-          </div>
-        ) : (
-          <CreateProjectForm 
-            onProjectCreated={addProject} 
-            onClose={handleCloseForm}
-          />
-        )}
-        
-        {filteredProjects.length > 0 && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Your Projects</h2>
-            <div className="space-y-4">
-              {filteredProjects.map((project) => (
-                <div 
-                  key={project.id}
-                  className="p-4 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
-                  onClick={() => handleProjectClick(project)}
-                >
-                  <h3 className="font-semibold text-white">{project.name}</h3>
-                  <p className="text-gray-400 text-sm">{project.description}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <p className="text-gray-500 text-xs">
-                      Created: {new Date(project.created_at).toLocaleDateString()}
-                    </p>
-                    {project.analysis && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-blue-400">
-                          AI Score: {project.analysis.clarity_score}/10
-                        </span>
-                        <span className="text-green-400">
-                          {project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {filteredProjects.length === 0 && !showCreateForm && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
-            <p className="text-gray-400 mb-4">
-              No projects yet. Create your first project to start building your professional portfolio.
-            </p>
-            <p className="text-sm text-gray-500">
-              Your verified skills will automatically sync with{' '}
-              <a 
-                href="https://reelcv.reelapps.co.za" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 transition-colors"
+      {viewMode === 'pipeline' ? (
+        <ProjectPipeline 
+          projects={filteredProjects}
+          onProjectMove={handleProjectMove}
+          onProjectClick={handleProjectClick}
+        />
+      ) : (
+        <div className="grid gap-6">
+          {!showCreateForm ? (
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <button 
+                onClick={() => setShowCreateForm(true)}
+                className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
               >
-                ReelCV
-              </a>
-              {' '}for a complete professional profile
-            </p>
-          </div>
-        )}
-      </div>
+                + Create New AI-Powered Project
+              </button>
+            </div>
+          ) : (
+            <CreateProjectForm 
+              onProjectCreated={addProject} 
+              onClose={handleCloseForm}
+            />
+          )}
+          
+          {filteredProjects.length > 0 && (
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Your Projects</h2>
+              <div className="space-y-4">
+                {filteredProjects.map((project) => (
+                  <div 
+                    key={project.id}
+                    className="p-4 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
+                    onClick={() => handleProjectClick(project)}
+                  >
+                    <h3 className="font-semibold text-white">{project.name}</h3>
+                    <p className="text-gray-400 text-sm">{project.description}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <p className="text-gray-500 text-xs">
+                        Created: {new Date(project.created_at).toLocaleDateString()}
+                      </p>
+                      {project.analysis && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-blue-400">
+                            AI Score: {project.analysis.clarity_score}/10
+                          </span>
+                          <span className="text-green-400">
+                            {project.skill_demonstrations?.filter((s: any) => s.verified).length || 0} verified skills
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredProjects.length === 0 && !showCreateForm && (
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
+              <p className="text-gray-400 mb-4">
+                No projects yet. Create your first project to start building your professional portfolio.
+              </p>
+              <p className="text-sm text-gray-500">
+                Your verified skills will automatically sync with{' '}
+                <a 
+                  href="https://reelcv.reelapps.co.za" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  ReelCV
+                </a>
+                {' '}for a complete professional profile
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer with ReelApps ecosystem links */}
       <footer className="mt-12 pt-8 border-t border-gray-700">
@@ -341,33 +375,45 @@ function App() {
     try {
       const supabase = getSupabaseClient();
       
+      // Prepare data for database - ensure all fields have correct types
+      const projectData = {
+        profile_id: user.id,
+        title: project.name || 'Untitled Project',
+        description: project.description || '',
+        role: project.goals || '',
+        technologies: Array.isArray(project.target_skills) ? project.target_skills : [],
+        demo_url: '',
+        github_url: '',
+        type: project.type || 'personal',
+        featured: false,
+        // Store scale and impact as JSON in metadata field if your DB has one
+        // Otherwise, you may need to add these columns to your projects table
+        metadata: {
+          scale: project.scale || 'small',
+          impact: project.impact || 'low',
+          analysis: project.analysis || {},
+          skill_demonstrations: project.skill_demonstrations || []
+        }
+      };
+
       // Save to database
       const { data, error } = await supabase
         .from('projects')
-        .insert({
-          profile_id: user.id,
-          title: project.name,
-          description: project.description,
-          role: project.goals || '',
-          technologies: project.target_skills || [],
-          demo_url: '',
-          github_url: '',
-          type: project.type || 'personal',
-          featured: false
-        })
+        .insert(projectData)
         .select()
         .single();
 
       if (error) {
         console.error('Error saving project:', error);
+        alert(`Failed to save project: ${error.message}`);
         return;
       }
 
       // Create the new project with database ID
-      const newProject = {
+      const newProject: Project = {
         ...project,
         id: data.id,
-        user_id: user.id
+        created_at: data.created_at || new Date().toISOString()
       };
       
       setProjects(prevProjects => {
@@ -381,6 +427,7 @@ function App() {
       });
     } catch (err) {
       console.error('Failed to save project:', err);
+      alert('Failed to save project. Please check your connection and try again.');
     }
   };
 

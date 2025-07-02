@@ -394,13 +394,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
           </div>
         )}
 
-        {skill.evidence_url && (
+        {skill.evidence_url && skill.evidence_url !== null && (
           <div className="evidence-section">
             <h5>Evidence</h5>
-            <a href={skill.evidence_url} target="_blank" rel="noopener noreferrer" className="evidence-link">
-              <ExternalLink size={16} />
-              View AI-Analyzed Submission
-            </a>
+            <div className="evidence-link-container">
+              <ExternalLink size={14} />
+              <a href={skill.evidence_url} target="_blank" rel="noopener noreferrer" className="evidence-link">
+                View evidence
+              </a>
+            </div>
           </div>
         )}
 
@@ -488,7 +490,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ projects }) => {
                 </p>
               </div>
               
-              {!project.skill_demonstrations.some(s => s.evidence_url) ? (
+              {!project.skill_demonstrations.some(s => s.evidence_url && s.evidence_url !== null) ? (
                 <div className="upload-prompt">
                   <div className="upload-instructions">
                     <h3>🤖 AI-Enhanced Multi-Skill Analysis</h3>

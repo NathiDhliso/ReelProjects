@@ -6,3 +6,55 @@
   padding: 2rem;
   text-align: center;
 }
+
+/* View Mode Toggle */
+.view-mode-toggle {
+  display: flex;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.view-mode-btn {
+  background: transparent;
+  border: none;
+  color: #6B7280;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-mode-btn:hover {
+  color: #9CA3AF;
+}
+
+.view-mode-btn.active {
+  background: #374151;
+  color: #F8FAFC;
+}
+
+/* Back button styles */
+.back-button {
+  background: #374151;
+  border: 1px solid #4B5563;
+  color: #F8FAFC;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.back-button:hover {
+  background: #4B5563;
+  transform: translateX(-2px);
+}
